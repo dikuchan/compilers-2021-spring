@@ -304,35 +304,70 @@ fun compile (env, code) {
           case pop2 (env) of
             [x, y, env] ->
               fun intOp (op, x, y) {
-                [push (env, y), code <+> move (y, eax) <+ Binop (op, x, eax) <+> move (eax, y)]
+                [push (env, y), code 
+                  <+> move (x, eax) 
+                  <+  Binop (op, eax, y)]
+              }
+
+              fun mulOp (op, x, y) {
+                [push (env, y), code
+                  <+> move (x, eax)
+                  <+  Binop (op, y, eax)
+                  <+> move (eax, y)]
               }
 
               fun divOp (x, y) {
-                [push (env, y), code <+> move (y, eax) <+ Cltd <+ IDiv (x) <+> move (eax, y)]
+                [push (env, y), code 
+                  <+> move (y, eax) 
+                  <+  Cltd 
+                  <+  IDiv (x) 
+                  <+> move (eax, y)]
               }
 
               fun modOp (x, y) {
-                [push (env, y), code <+> move (y, eax) <+ Cltd <+ IDiv (x) <+> move (edx, y)]
+                [push (env, y), code 
+                  <+> move(y, eax)
+                  <+  Cltd 
+                  <+  IDiv (x) 
+                  <+> move (edx, y)]
+              }
+
+              fun boolOp (op, x, y) {
+                [push (env, y), code 
+                  <+> move (L (0), eax) 
+                  <+  Binop ("cmp", x, eax) 
+                  <+  Set (suffix ("!="), "%al") 
+                  <+> move (eax, x) 
+                  <+> move (L (0), eax) 
+                  <+  Binop ("cmp", y, eax) 
+                  <+  Set (suffix ("!="), "%al") 
+                  <+  Binop (op, x, eax) 
+                  <+> move (eax, y)]
               }
 
               fun cmpOp (op, x, y) {
-                [push (env, y), code <+ Binop ("cmp", x, y) <+> move (L (0), eax) <+ Set (suffix (op), "%al") <+> move (eax, y)] 
+                [push (env, y), code 
+                  <+> move (x, eax) 
+                  <+  Binop ("cmp", eax, y) 
+                  <+> move (L (0), eax) 
+                  <+  Set (suffix (op), "%al") 
+                  <+> move (eax, y)]
               }
 
               case op of
-                  "+"  -> intOp (op, x, y)
-                | "-"  -> intOp (op, x, y)
-                | "*"  -> intOp (op, x, y)
-                | "/"  -> divOp (x, y)
-                | "%"  -> modOp (x, y)
-                | "!!" -> intOp (op, x, y)
-                | "&&" -> intOp (op, x, y)
-                | "==" -> cmpOp (op, x, y)
-                | "!=" -> cmpOp (op, x, y)
-                | "<"  -> cmpOp (op, x, y)
-                | ">"  -> cmpOp (op, x, y)
-                | "<=" -> cmpOp (op, x, y)
-                | ">=" -> cmpOp (op, x, y)
+                  "+"  -> intOp  (op, x, y)
+                | "-"  -> intOp  (op, x, y)
+                | "*"  -> mulOp  (op, x, y)
+                | "/"  -> divOp  (x, y)
+                | "%"  -> modOp  (x, y)
+                | "!!" -> boolOp (op, x, y)
+                | "&&" -> boolOp (op, x, y)
+                | "==" -> cmpOp  (op, x, y)
+                | "!=" -> cmpOp  (op, x, y)
+                | "<"  -> cmpOp  (op, x, y)
+                | ">"  -> cmpOp  (op, x, y)
+                | "<=" -> cmpOp  (op, x, y)
+                | ">=" -> cmpOp  (op, x, y)
               esac
           esac
       esac
